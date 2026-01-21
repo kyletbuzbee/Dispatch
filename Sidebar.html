@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K&L Dispatch</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 12px;
+      background: #f8f9fa;
+      color: #333;
+    }
+
+    /* CARDS */
+    .card {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e9ecef;
+      margin-bottom: 16px;
+    }
+
+    /* HEADERS */
+    h3 {
+      margin-top: 0;
+      color: #2e7d32;
+      border-bottom: 2px solid #e8f5e9;
+      padding-bottom: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* INPUTS */
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #5f6368;
+      margin-top: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 4px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: #2e7d32;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+    }
+
+    /* BUTTONS */
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 8px;
+      transition: all 0.2s;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: #2e7d32;
+      color: white;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary:active {
+      background: #1b5e20;
+      transform: translateY(1px);
+    }
+
+    .btn-action {
+      background: white;
+      border: 1px solid #dadce0;
+      color: #3c4043;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-action:hover {
+      background: #f1f3f4;
+      border-color: #d2d3d5;
+    }
+
+    .btn-archive {
+      background: #fff8e1;
+      color: #b06000;
+      border: 1px solid #ffecb3;
+      margin-top: 15px;
+    }
+
+    .btn-archive:hover {
+      background: #ffecb3;
+    }
+
+    /* DASHBOARD STATS */
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+      gap: 10px;
+    }
+
+    .stat-box {
+      flex: 1;
+      background: #f8f9fa;
+      padding: 12px 5px;
+      border-radius: 6px;
+      border: 1px solid #f1f3f4;
+    }
+
+    .stat-num {
+      font-size: 28px;
+      font-weight: 800;
+      display: block;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      color: #5f6368;
+      font-weight: 700;
+    }
+
+    /* TOAST NOTIFICATION */
+    #toast {
+      visibility: hidden;
+      min-width: 250px;
+      background-color: #202124;
+      color: #fff;
+      text-align: center;
+      border-radius: 4px;
+      padding: 16px;
+      position: fixed;
+      z-index: 99;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      font-size: 13px;
+    }
+
+    #toast.show {
+      visibility: visible;
+      animation: fadein 0.5s, fadeout 0.5s 2.5s;
+    }
+
+    @keyframes fadein {
+      from {
+        bottom: 0;
+        opacity: 0;
+      }
+
+      to {
+        bottom: 30px;
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeout {
+      from {
+        bottom: 30px;
+        opacity: 1;
+      }
+
+      to {
+        bottom: 0;
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <div class="stats-row">
+      <div class="stat-box">
+        <span id="schedStat" class="stat-num" style="color:#d32f2f">--</span>
+        <span class="stat-label">SCHEDULED</span>
+      </div>
+      <div class="stat-box">
+        <span id="completeStat" class="stat-num" style="color:#2e7d32">--</span>
+        <span class="stat-label">COMPLETE</span>
+      </div>
+    </div>
+    <button class="btn-action" onclick="refreshStats()" style="font-size:11px; padding:6px; margin-top:12px;">
+      <span>↻ Refresh Board</span>
+    </button>
+  </div>
+
+  <div class="card">
+    <h3>➕ Schedule Job</h3>
+
+    <label>Company (Select or Type New)</label>
+    <input list="companyList" id="company" placeholder="Start typing name..." autocomplete="off">
+    <datalist id="companyList"></datalist>
+
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1">
+        <label>Date</label>
+        <input type="date" id="date">
+      </div>
+      <div style="flex:1">
+        <label>City</label>
+        <input type="text" id="city" placeholder="City">
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <div style="flex:1">
+        <label>Action</label>
+        <select id="action">
+          <option>Drop</option>
+          <option>Swap</option>
+          <option>Pick up</option>
+          <option>Round Trip</option>
+          <option>Live Load</option>
+          <option>Move Box</option>
+          <option>Empty</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label>Yard</label>
+        <select id="yard">
+          <option>Madfos</option>
+          <option>Jacksonville</option>
+          <option>Nacogdoches</option>
+          <option>Palestine</option>
+          <option>Crockett</option>
+          <option>Mineola</option>
+          <option>Jasper</option>
+          <option>Tyler</option>
+          <option>Landfill</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <div style="flex:2">
+        <label>Box Size</label>
+        <select id="boxSize">
+          <option>30yd</option>
+          <option>20yd</option>
+          <option>40yd</option>
+          <option>10yd</option>
+          <option>Longbox</option>
+        </select>
+      </div>
+      <div style="flex:1">
+        <label>Qty</label>
+        <input type="number" id="numBoxes" value="1" min="1">
+      </div>
+    </div>
+
+    <label>Notes</label>
+    <textarea id="notes" rows="2" placeholder="Gate codes, contacts..."></textarea>
+
+    <button class="btn-primary" onclick="submitJob()" id="addBtn">ADD TO SCHEDULE</button>
+  </div>
+
+  <div class="card">
+    <h3>⚡ Email Reports</h3>
+
+    <button class="btn-action" onclick="sendNextDay()">
+      <span>📅 Send Schedule (Next Day)</span>
+    </button>
+
+    <button class="btn-action" onclick="sendPreviousDay()">
+      <span>✅ Send Report (Yesterday)</span>
+    </button>
+
+    <hr style="border-top:1px dashed #ccc; margin:15px 0;">
+
+    <label style="color:#b06000;">📦 Archive Date Range (Optional)</label>
+
+    <div style="margin-bottom:10px;">
+      <label style="margin-top:5px; font-size:10px; color:#777;">From:</label>
+      <input type="date" id="archiveStart" style="margin-top:0;">
+
+      <label style="margin-top:8px; font-size:10px; color:#777;">To:</label>
+      <input type="date" id="archiveEnd" style="margin-top:0;">
+    </div>
+
+    <div style="font-size:10px; color:#999; margin-bottom:10px; font-style:italic;">
+      *Leave blank to archive ALL completed jobs.
+    </div>
+
+    <button class="btn-archive" onclick="archive()">
+      <span>📦 Archive Completed Jobs</span>
+    </button>
+  </div>
+
+  <div id="toast">Message</div>
+
+  <script>
+    window.onload = function () {
+      document.getElementById('date').valueAsDate = new Date();
+      refreshStats();
+      loadCompanies();
+    };
+
+    function refreshStats() {
+      google.script.run.withSuccessHandler(function (stats) {
+        document.getElementById('schedStat').innerText = stats.scheduled;
+        document.getElementById('completeStat').innerText = stats.complete;
+      }).getDashboardStats();
+    }
+
+    function loadCompanies() {
+      google.script.run.withSuccessHandler(function (list) {
+        const dl = document.getElementById('companyList');
+        dl.innerHTML = '';
+        list.forEach(c => {
+          let opt = document.createElement('option');
+          opt.value = c;
+          dl.appendChild(opt);
+        });
+      }).getCompanyList();
+    }
+
+    function submitJob() {
+      const btn = document.getElementById('addBtn');
+      const company = document.getElementById('company').value;
+      if (!company) { showToast("⚠️ Company Name is required"); return; }
+      btn.disabled = true;
+      btn.innerText = "Saving...";
+      const form = {
+        date: document.getElementById('date').value,
+        company: company,
+        city: document.getElementById('city').value,
+        action: document.getElementById('action').value,
+        yard: document.getElementById('yard').value,
+        boxSize: document.getElementById('boxSize').value,
+        numBoxes: document.getElementById('numBoxes').value,
+        notes: document.getElementById('notes').value
+      };
+      google.script.run.withSuccessHandler(function (stats) {
+        document.getElementById('company').value = '';
+        document.getElementById('city').value = '';
+        document.getElementById('notes').value = '';
+        document.getElementById('schedStat').innerText = stats.scheduled;
+        showToast("✅ Job Scheduled!");
+        btn.disabled = false;
+        btn.innerText = "ADD TO SCHEDULE";
+      }).addNewJob(form);
+    }
+
+    function sendNextDay() {
+      if (!confirm("Send 'Next Day Schedule' email?")) return;
+      google.script.run.withSuccessHandler(showToast).sendNextDaySchedule();
+    }
+
+    function sendPreviousDay() {
+      if (!confirm("Send 'Previous Day Report' for completed jobs?")) return;
+      google.script.run.withSuccessHandler(showToast).sendPreviousDayReport();
+    }
+
+    function archive() {
+      const start = document.getElementById('archiveStart').value;
+      const end = document.getElementById('archiveEnd').value;
+
+      let msg = "⚠️ Move ALL Completed jobs to Archive?";
+      if (start || end) {
+        msg = `⚠️ Archive Completed jobs between ${start || 'Start'} and ${end || 'Now'}?`;
+      }
+
+      if (!confirm(msg)) return;
+
+      google.script.run.withSuccessHandler(function (msg) {
+        showToast(msg);
+        refreshStats();
+      }).archiveCompletedRows(start, end);
+    }
+
+    function showToast(msg) {
+      const x = document.getElementById("toast");
+      x.innerText = msg;
+      x.className = "show";
+      setTimeout(function () { x.className = x.className.replace("show", ""); }, 3000);
+    }
+  </script>
+</body>
+
+</html>
