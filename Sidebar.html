@@ -297,6 +297,10 @@
       <span>✅ Send Report (Yesterday)</span>
     </button>
 
+    <button class="btn-action" onclick="sendWaitingList()">
+      <span>⏳ Send Waiting List Report</span>
+    </button>
+
     <hr style="border-top:1px dashed #ccc; margin:15px 0;">
 
     <label style="color:#b06000;">📦 Archive Date Range (Optional)</label>
@@ -381,6 +385,11 @@
     function sendPreviousDay() {
       if (!confirm("Send 'Previous Day Report' for completed jobs?")) return;
       google.script.run.withSuccessHandler(showToast).sendPreviousDayReport();
+    }
+
+    function sendWaitingList() {
+      if (!confirm("Send 'Waiting List Report' to Corporate?")) return;
+      google.script.run.withSuccessHandler(showToast).sendWaitingListReport();
     }
 
     function archive() {

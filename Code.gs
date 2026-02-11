@@ -10,7 +10,9 @@
 const CONFIG = {
   SHEET_NAME: 'Dispatch Sheet',
   ARCHIVE_PREFIX: 'Archive_',
-  EMAIL_RECIPIENTS: [
+
+  // LIST 1: EVERYONE (For the Morning Schedule)
+  EMAILS_ALL: [
     'mineola@kl-recycling.com',
     'ccrow@kl-recycling.com',
     'awells@kl-recycling.com',
@@ -25,8 +27,17 @@ const CONFIG = {
     'nacogdoches@kl-recycling.com',
     'premier@kl-recycling.com',
     'mwells@kl-recycling.com',
-    'rsawler@kl-recycling.com'
+    'rsawler@kl-recycling.com',
+    'ccrow@kl-recycling.com',
+    'MARKETING@kl-recycling.com',
+    'dispatch@kl-recycling.com'
   ],
+
+  // LIST 2: CORPORATE ONLY (For the Completed Report)
+  // [!] EDIT THIS LIST: Add only the emails that should see the Completed Report
+  EMAILS_CORPORATE: ['MARKETING@kl-recycling.com'],
+
+
 
   // Column Mapping (0-based Index: A=0, B=1, etc.)
   COLS: {
@@ -55,6 +66,7 @@ function onOpen() {
     .addSeparator()
     .addItem('📅 Send Next Day Schedule', 'sendNextDaySchedule')
     .addItem('✅ Send Previous Day Report', 'sendPreviousDayReport')
+    .addItem('⏳ Send Waiting List Report', 'sendWaitingListReport') // <--- NEW ITEM
     .addSeparator()
     .addItem('📦 Archive Completed Jobs', 'archiveCompletedRows')
     .addToUi();
@@ -298,7 +310,7 @@ function sendPreviousDayReport() {
   </div>`;
 
   MailApp.sendEmail({
-    to: CONFIG.EMAIL_RECIPIENTS.join(','),
+    to: CONFIG.EMAILS_CORPORATE.join(','),
     subject: `✅ Completed Report - ${targetStr}`,
     htmlBody: html
   });
@@ -360,12 +372,65 @@ function sendNextDaySchedule() {
   html += '</div>';
 
   MailApp.sendEmail({
-    to: CONFIG.EMAIL_RECIPIENTS.join(','),
+    to: CONFIG.EMAILS_ALL.join(','),
     subject: `📅 Scheduled - ${formatDate(getTargetDate('next'))}`,
     htmlBody: html
   });
 
   return `Schedule sent for ${jobs.length} jobs.`;
+}
+
+// --- WAITING LIST REPORT (PENDING JOBS) ---
+function sendWaitingListReport() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(CONFIG.SHEET_NAME);
+  const data = sh.getDataRange().getValues();
+  data.shift(); // remove headers
+
+  // Filter: Status contains 'on hold' (case-insensitive)
+  const jobs = data
+    .filter(row => {
+      const status = String(row[CONFIG.COLS.STATUS]).trim().toLowerCase();
+      return status.includes('on hold');
+    })
+    .map(mapRowToObject);
+
+  // Even if 0 jobs, we likely want to know the list is empty, but we can return early if preferred.
+  // Here we return a message to the user if empty.
+  if (jobs.length === 0) return 'No jobs currently on the Waiting List.';
+
+  const grouped = groupBy(jobs, 'yard');
+  const todayStr = formatDate(new Date());
+
+  let html = '<div style="font-family: Arial, sans-serif; color: #000;">';
+  
+  // Header with Total Count
+  html += `<h2 style="color: #b06000;">⏳ WAITING LIST: ${jobs.length} Jobs</h2>`;
+  html += `<div style="margin-bottom: 15px; color: #555;">Generated on: ${todayStr}</div>`;
+
+  // Yard Lists
+  for (const yard in grouped) {
+    html += `<h3 style="margin-bottom: 5px; color: #222; text-transform: uppercase;">${yard}</h3>`;
+    grouped[yard].forEach(j => {
+      const qtyStr = j.qty > 1 ? ` <strong>X${j.qty}</strong>` : '';
+      // Displaying Company, Box Size, and Action for context
+      html += `<div style="margin-bottom: 4px; border-bottom: 1px solid #eee; padding-bottom: 2px;">
+                 <strong>${j.company}</strong>${qtyStr} <br>
+                 <span style="font-size: 12px; color: #666;">${j.box} • ${j.action} • ${j.city}</span>
+               </div>`;
+    });
+    html += '<br>';
+  }
+
+  html += '</div>';
+
+  MailApp.sendEmail({
+    to: CONFIG.EMAILS_CORPORATE.join(','), // Sends to same list as Completed Report
+    subject: `⏳ Waiting List Report - ${todayStr}`,
+    htmlBody: html
+  });
+
+  return `Waiting List sent. Total waiting: ${jobs.length}.`;
 }
 
 // ==========================================
